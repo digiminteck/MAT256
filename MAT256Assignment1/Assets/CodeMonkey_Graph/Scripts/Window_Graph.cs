@@ -16,7 +16,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using CodeMonkey.Utils;
-using UnityEditor.Build.Reporting;
 
 public class Window_Graph : MonoBehaviour {
 
@@ -37,15 +36,8 @@ public class Window_Graph : MonoBehaviour {
     private List<float> valueList;
     private IGraphVisual graphVisual;
     private int maxVisibleValueAmount;
-    private Func<int, string> getAxisLabelX;
-    private Func<int, string> getAxisLabelY;
-
-    public float mass;
-    public float gravity;
-    public float angle; // rad mode
-    public float acc;
-    public float time;
-
+    private Func<float, string> getAxisLabelX;
+    private Func<float, string> getAxisLabelY;
 
     private void Awake() {
         instance = this;
@@ -80,22 +72,21 @@ public class Window_Graph : MonoBehaviour {
         };
         
         transform.Find("dollarBtn").GetComponent<Button_UI>().ClickFunc = () => {
-            SetGetAxisLabelY((int _f) => "$" + Mathf.RoundToInt(_f));
+          //  SetGetAxisLabelY((float _f) => "$" + Mathf.RoundToInt(_f));
         };
         transform.Find("euroBtn").GetComponent<Button_UI>().ClickFunc = () => {
-            SetGetAxisLabelY((int _f) => "€" + Mathf.RoundToInt(_f / 1.18f));
+          //  SetGetAxisLabelY((float _f) => "€" + Mathf.RoundToInt(_f / 1.18f));
         };
         
         HideTooltip();
 
-        // temp value
-
-
-        // Set up base values, treat value list is y coordinate
+        // Set up base values
         List<float> valueList = new List<float>() { 5, 98, 56, 45, 30, 22, 17, 15, 13, 17, 25, 37, 40, 36, 33 };
 
-        // graph label
-        ShowGraph(valueList, barChartVisual, -1, (int _i) => "Day " + (_i + 1), (int _f) => "$" + Mathf.RoundToInt(_f));
+        NumericalMethods(valueList);
+
+
+        ShowGraph(valueList, barChartVisual, -1, (float _i) => "" + (_i + 1), (float _f) => "" + _f);
 
         /*
         // Automatically modify graph values and visual
@@ -114,23 +105,54 @@ public class Window_Graph : MonoBehaviour {
         }, .5f);
         //*/
     }
-
-    public void NumericalMethods(List<int> valueList)
+    public void NumericalMethods(List<float> valueList)
     {
         valueList.Clear();
 
         float stepSize = 1.0f; // base on x coordinate
 
         float x0 = 0.0f; // start of projectile x pos
-        float xn = 100.0f; // max projectile x pos to plot
+        float xn = 10.0f; // max projectile x pos to plot
 
         float y0 = 0.0f; // start projectil y pos;
 
         float startStepDraw = x0;
 
-        while(startStepDraw < xn)
+        float t = 0.0f;
+
+
+        // temp value
+        float speed = 1.0f;
+        double angle = (45 * Math.PI) / 180;
+        float gravity = 9.81f;
+   
+
+
+        while (startStepDraw < xn)
         {
+
             startStepDraw += stepSize;
+
+            // find t when proj at x pos;
+            float vx = speed * (float)Math.Cos(angle);
+
+            Debug.Log("vx: " + vx);
+
+
+            t = startStepDraw / vx;
+
+            Debug.Log("t: " + t);
+
+            float vy = speed * (float)Math.Sin(angle) - gravity * t;
+
+            Debug.Log("vy: " + vy);
+
+            float y = speed * t * (float)Math.Sin(angle) - 0.5f * gravity * t * t;
+
+            valueList.Add(y);
+
+
+            Debug.Log("y: " + y);
 
         }
 
@@ -169,11 +191,11 @@ public class Window_Graph : MonoBehaviour {
         tooltipGameObject.SetActive(false);
     }
 
-    private void SetGetAxisLabelX(Func<int, string> getAxisLabelX) {
+    private void SetGetAxisLabelX(Func<float, string> getAxisLabelX) {
         ShowGraph(this.valueList, this.graphVisual, this.maxVisibleValueAmount, getAxisLabelX, this.getAxisLabelY);
     }
 
-    private void SetGetAxisLabelY(Func<int, string> getAxisLabelY) {
+    private void SetGetAxisLabelY(Func<float, string> getAxisLabelY) {
         ShowGraph(this.valueList, this.graphVisual, this.maxVisibleValueAmount, this.getAxisLabelX, getAxisLabelY);
     }
 
@@ -189,7 +211,7 @@ public class Window_Graph : MonoBehaviour {
         ShowGraph(this.valueList, graphVisual, this.maxVisibleValueAmount, this.getAxisLabelX, this.getAxisLabelY);
     }
 
-    private void ShowGraph(List<float> valueList, IGraphVisual graphVisual, int maxVisibleValueAmount = -1, Func<int, string> getAxisLabelX = null, Func<int, string> getAxisLabelY = null) {
+    private void ShowGraph(List<float> valueList, IGraphVisual graphVisual, int maxVisibleValueAmount = -1, Func<float, string> getAxisLabelX = null, Func<float, string> getAxisLabelY = null) {
         this.valueList = valueList;
         this.graphVisual = graphVisual;
         this.getAxisLabelX = getAxisLabelX;
@@ -208,10 +230,10 @@ public class Window_Graph : MonoBehaviour {
 
         // Test for label defaults
         if (getAxisLabelX == null) {
-            getAxisLabelX = delegate (int _i) { return _i.ToString(); };
+            getAxisLabelX = delegate (float _i) { return _i.ToString(); };
         }
         if (getAxisLabelY == null) {
-            getAxisLabelY = delegate (int _f) { return Mathf.RoundToInt(_f).ToString(); };
+            getAxisLabelY = delegate (float _f) { return _f.ToString(); };
         }
 
         // Clean up previous graph
@@ -264,7 +286,7 @@ public class Window_Graph : MonoBehaviour {
             float yPosition = ((valueList[i] - yMinimum) / (yMaximum - yMinimum)) * graphHeight;
 
             // Add data point visual
-            string tooltipText = getAxisLabelY(Mathf.RoundToInt(valueList[i]));
+            string tooltipText = getAxisLabelY(valueList[i]);
             IGraphVisualObject graphVisualObject = graphVisual.CreateGraphVisualObject(new Vector2(xPosition, yPosition), xSize, tooltipText);
             graphVisualObjectList.Add(graphVisualObject);
 
@@ -295,7 +317,7 @@ public class Window_Graph : MonoBehaviour {
             labelY.gameObject.SetActive(true);
             float normalizedValue = i * 1f / separatorCount;
             labelY.anchoredPosition = new Vector2(-7f, normalizedValue * graphHeight);
-            labelY.GetComponent<Text>().text = getAxisLabelY(Mathf.RoundToInt(yMinimum + (normalizedValue * (yMaximum - yMinimum))));
+            labelY.GetComponent<Text>().text = getAxisLabelY(yMinimum + (normalizedValue * (yMaximum - yMinimum)));
             gameObjectList.Add(labelY.gameObject);
 
             // Duplicate the dash template
