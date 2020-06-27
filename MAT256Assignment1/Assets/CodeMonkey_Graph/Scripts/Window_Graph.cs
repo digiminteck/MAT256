@@ -33,7 +33,8 @@ public class Window_Graph : MonoBehaviour {
     private GameObject tooltipGameObject;
 
     // Cached values
-    private List<float> valueList;
+    private List<float> valueListx;
+    private List<float> valueListy;
     private IGraphVisual graphVisual;
     private int maxVisibleValueAmount;
     private Func<float, string> getAxisLabelX;
@@ -81,12 +82,13 @@ public class Window_Graph : MonoBehaviour {
         HideTooltip();
 
         // Set up base values
-        List<float> valueList = new List<float>() { 5, 98, 56, 45, 30, 22, 17, 15, 13, 17, 25, 37, 40, 36, 33 };
+        List<float> valueListx = new List<float>() { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
+        List<float> valueListy = new List<float>() { 5, 98, 56, 45, 30, 22, 17, 15, 13, 17, 25, 37, 40, 36, 33 };
 
-        NumericalMethods(valueList);
+        NumericalMethods(valueListx,valueListy);
 
 
-        ShowGraph(valueList, barChartVisual, -1, (float _i) => "" + (_i + 1), (float _f) => "" + _f);
+        ShowGraph(valueListx, valueListy, barChartVisual, -1, (float _i) => "" + (_i + 1), (float _f) => "" + _f);
 
         /*
         // Automatically modify graph values and visual
@@ -105,54 +107,50 @@ public class Window_Graph : MonoBehaviour {
         }, .5f);
         //*/
     }
-    public void NumericalMethods(List<float> valueList)
+    public void NumericalMethods(List<float> valueListx, List<float> valueListy )
     {
-        valueList.Clear();
+        valueListx.Clear();
+        valueListy.Clear();
 
         float stepSize = 1.0f; // base on x coordinate
+        float stepMax = 10.0f;
 
-        float x0 = 0.0f; // start of projectile x pos
-        float xn = 10.0f; // max projectile x pos to plot
-
-        float y0 = 0.0f; // start projectil y pos;
-
-        float startStepDraw = x0;
+        float startStepDraw = 0.0f;
 
         float t = 0.0f;
 
 
         // temp value
-        float speed = 1.0f;
+        float speed = 100.0f;
         double angle = (45 * Math.PI) / 180;
         float gravity = 9.81f;
+        float mass = 1.0f;
+        float c = 1.0f;
    
 
 
-        while (startStepDraw < xn)
+        while (startStepDraw < stepMax)
         {
-
+            t = startStepDraw;
             startStepDraw += stepSize;
 
+            float vt = mass * gravity / c;
             // find t when proj at x pos;
-            float vx = speed * (float)Math.Cos(angle);
-
-            Debug.Log("vx: " + vx);
-
-
-            t = startStepDraw / vx;
-
-            Debug.Log("t: " + t);
-
-            float vy = speed * (float)Math.Sin(angle) - gravity * t;
-
-            Debug.Log("vy: " + vy);
-
-            float y = speed * t * (float)Math.Sin(angle) - 0.5f * gravity * t * t;
-
-            valueList.Add(y);
+            double e = (double)(gravity * -t / vt);
+            float vx = (float)(speed * Math.Cos(angle) * Math.Exp(e)) ;
+            float vy = (float)(speed * Math.Sin(angle) * Math.Exp(e) - vt * (1 - Math.Exp(e)));
 
 
-            Debug.Log("y: " + y);
+            float x = (float)((speed * vt * Math.Cos(angle) / gravity) * Math.Exp(e));
+            float y = (float)((vt / gravity) * (speed * Math.Sin(angle) + vt) * (1 - Math.Exp(e)) - vt * t);
+
+            valueListx.Add(x);
+            valueListy.Add(y);
+
+
+            Debug.Log("x: " + x + " y: " + y + " vx: " + vx + " vy: " + vy );
+
+            
 
         }
 
@@ -192,38 +190,39 @@ public class Window_Graph : MonoBehaviour {
     }
 
     private void SetGetAxisLabelX(Func<float, string> getAxisLabelX) {
-        ShowGraph(this.valueList, this.graphVisual, this.maxVisibleValueAmount, getAxisLabelX, this.getAxisLabelY);
+        ShowGraph(this.valueListx, this.valueListy, this.graphVisual, this.maxVisibleValueAmount, getAxisLabelX, this.getAxisLabelY);
     }
 
     private void SetGetAxisLabelY(Func<float, string> getAxisLabelY) {
-        ShowGraph(this.valueList, this.graphVisual, this.maxVisibleValueAmount, this.getAxisLabelX, getAxisLabelY);
+        ShowGraph(this.valueListx, this.valueListy, this.graphVisual, this.maxVisibleValueAmount, this.getAxisLabelX, getAxisLabelY);
     }
 
     private void IncreaseVisibleAmount() {
-        ShowGraph(this.valueList, this.graphVisual, this.maxVisibleValueAmount + 1, this.getAxisLabelX, this.getAxisLabelY);
+        ShowGraph(this.valueListx, this.valueListy,this.graphVisual, this.maxVisibleValueAmount + 1, this.getAxisLabelX, this.getAxisLabelY);
     }
 
     private void DecreaseVisibleAmount() {
-        ShowGraph(this.valueList, this.graphVisual, this.maxVisibleValueAmount - 1, this.getAxisLabelX, this.getAxisLabelY);
+        ShowGraph(this.valueListx, this.valueListy, this.graphVisual, this.maxVisibleValueAmount - 1, this.getAxisLabelX, this.getAxisLabelY);
     }
 
     private void SetGraphVisual(IGraphVisual graphVisual) {
-        ShowGraph(this.valueList, graphVisual, this.maxVisibleValueAmount, this.getAxisLabelX, this.getAxisLabelY);
+        ShowGraph(this.valueListx, this.valueListy, graphVisual, this.maxVisibleValueAmount, this.getAxisLabelX, this.getAxisLabelY);
     }
 
-    private void ShowGraph(List<float> valueList, IGraphVisual graphVisual, int maxVisibleValueAmount = -1, Func<float, string> getAxisLabelX = null, Func<float, string> getAxisLabelY = null) {
-        this.valueList = valueList;
+    private void ShowGraph(List<float> valueListx, List<float> valueListy, IGraphVisual graphVisual, int maxVisibleValueAmount = -1, Func<float, string> getAxisLabelX = null, Func<float, string> getAxisLabelY = null) {
+        this.valueListx = valueListx;
+        this.valueListy = valueListy;
         this.graphVisual = graphVisual;
         this.getAxisLabelX = getAxisLabelX;
         this.getAxisLabelY = getAxisLabelY;
 
         if (maxVisibleValueAmount <= 0) {
             // Show all if no amount specified
-            maxVisibleValueAmount = valueList.Count;
+            maxVisibleValueAmount = valueListy.Count;
         }
-        if (maxVisibleValueAmount > valueList.Count) {
+        if (maxVisibleValueAmount > valueListy.Count) {
             // Validate the amount to show the maximum
-            maxVisibleValueAmount = valueList.Count;
+            maxVisibleValueAmount = valueListy.Count;
         }
 
         this.maxVisibleValueAmount = maxVisibleValueAmount;
@@ -254,11 +253,11 @@ public class Window_Graph : MonoBehaviour {
         float graphHeight = graphContainer.sizeDelta.y;
 
         // Identify y Min and Max values
-        float yMaximum = valueList[0];
-        float yMinimum = valueList[0];
+        float yMaximum = valueListy[0];
+        float yMinimum = valueListy[0];
         
-        for (int i = Mathf.Max(valueList.Count - maxVisibleValueAmount, 0); i < valueList.Count; i++) {
-            float value = valueList[i];
+        for (int i = Mathf.Max(valueListy.Count - maxVisibleValueAmount, 0); i < valueListy.Count; i++) {
+            float value = valueListy[i];
             if (value > yMaximum) {
                 yMaximum = value;
             }
@@ -281,12 +280,12 @@ public class Window_Graph : MonoBehaviour {
 
         // Cycle through all visible data points
         int xIndex = 0;
-        for (int i = Mathf.Max(valueList.Count - maxVisibleValueAmount, 0); i < valueList.Count; i++) {
+        for (int i = Mathf.Max(valueListy.Count - maxVisibleValueAmount, 0); i < valueListy.Count; i++) {
             float xPosition = xSize + xIndex * xSize;
-            float yPosition = ((valueList[i] - yMinimum) / (yMaximum - yMinimum)) * graphHeight;
+            float yPosition = ((valueListy[i] - yMinimum) / (yMaximum - yMinimum)) * graphHeight;
 
             // Add data point visual
-            string tooltipText = getAxisLabelY(valueList[i]);
+            string tooltipText = getAxisLabelY(valueListx[i]);
             IGraphVisualObject graphVisualObject = graphVisual.CreateGraphVisualObject(new Vector2(xPosition, yPosition), xSize, tooltipText);
             graphVisualObjectList.Add(graphVisualObject);
 
